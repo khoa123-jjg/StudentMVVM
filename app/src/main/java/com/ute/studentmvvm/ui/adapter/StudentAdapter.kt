@@ -1,4 +1,4 @@
-package com.ute.studentmvvm.viewmodel
+package com.ute.studentmvvm.ui.adapter
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

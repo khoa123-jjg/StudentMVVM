@@ -30,7 +30,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".viewmodel.StudentAdapter"
+            android:name=".ui.adapter.StudentAdapter"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
     </application>
