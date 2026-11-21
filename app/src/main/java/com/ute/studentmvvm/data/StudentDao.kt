@@ -36,5 +36,6 @@ interface StudentDao {
         "SELECT * FROM students_table " +
                 "WHERE student_code = :code LIMIT 1"
     )
+
     suspend fun getStudentByCode(code: String): Student?
 }
