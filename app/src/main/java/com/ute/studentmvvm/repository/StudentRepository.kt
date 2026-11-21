@@ -1,67 +1,35 @@
-
 package com.ute.studentmvvm.repository
 
 import com.ute.studentmvvm.data.StudentDao
 import com.ute.studentmvvm.model.Student
+import com.ute.studentmvvm.network.RetrofitClient
 import com.ute.studentmvvm.network.StudentApiService
+import com.ute.studentmvvm.network.toEntity
 import kotlinx.coroutines.flow.Flow
 
 class StudentRepository(
     private val studentDao: StudentDao,
-    private val apiService: StudentApiService
+    private val apiService: StudentApiService = RetrofitClient.apiService
 ) {
+    // Single Source of Truth: UI chỉ quan sát Room Flow
+    val allStudents: Flow<List<Student>> = studentDao.getAllStudents()
 
-    // Quan sát danh sách sinh viên trong Room
-    val allStudents: Flow<List<Student>> =
-        studentDao.getAllStudents()
+    suspend fun insert(student: Student): Long = studentDao.insertStudent(student)
 
-    // Thêm sinh viên
-    suspend fun insertStudent(student: Student) {
-        studentDao.insertStudent(student)
-    }
+    suspend fun update(student: Student) = studentDao.updateStudent(student)
 
-    // Cập nhật sinh viên
-    suspend fun updateStudent(student: Student) {
-        studentDao.updateStudent(student)
-    }
+    suspend fun delete(student: Student) = studentDao.deleteStudent(student)
 
-    // Xóa sinh viên
-    suspend fun deleteStudent(student: Student) {
-        studentDao.deleteStudent(student)
-    }
+    suspend fun getStudentByCode(code: String): Student? = studentDao.getStudentByCode(code)
 
-    // Tìm sinh viên theo mã
-    suspend fun getStudentByCode(code: String): Student? {
-        return studentDao.getStudentByCode(code)
-    }
-
-    // Đồng bộ dữ liệu từ API về Room
-    suspend fun syncStudentsFromApi(): Result<Int> {
+    suspend fun syncFromCloud(): Result<Int> {
         return try {
-
-            val apiStudents = apiService.getStudents()
-
-            val students = apiStudents.map { dto ->
-
-                Student(
-                    id = 1000 + dto.id,
-                    fullName = dto.name,
-                    studentCode = "API%04d".format(dto.id),
-                    email = dto.email,
-                    gpa = 0.0,
-                    major = "Dữ liệu từ API"
-                )
-
-            }
-
-            studentDao.insertAll(students)
-
-            Result.success(students.size)
-
-        } catch (exception: Exception) {
-
-            Result.failure(exception)
-
+            val remoteList = apiService.getStudents()
+            val entities = remoteList.map { it.toEntity() }
+            studentDao.insertAll(entities)
+            Result.success(entities.size)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

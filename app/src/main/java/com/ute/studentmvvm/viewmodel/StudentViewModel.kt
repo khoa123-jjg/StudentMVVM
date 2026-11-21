@@ -1,64 +1,47 @@
-
 package com.ute.studentmvvm.viewmodel
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.ute.studentmvvm.model.Student
 import com.ute.studentmvvm.repository.StudentRepository
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class StudentViewModel(
-    private val repository: StudentRepository
-) : ViewModel() {
+class StudentViewModel(private val repository: StudentRepository) : ViewModel() {
 
-    // Danh sách sinh viên tự động cập nhật khi Room thay đổi
-    val students = repository.allStudents.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    // Chuyển đổi Flow sang LiveData trên Dispatchers.IO
+    val allStudents: LiveData<List<Student>> = repository.allStudents.asLiveData(Dispatchers.IO)
 
-    // Thêm sinh viên
-    fun insertStudent(student: Student) {
-        viewModelScope.launch {
-            repository.insertStudent(student)
+    private val _statusMessage = MutableLiveData<String>()
+    val statusMessage: LiveData<String> get() = _statusMessage
+
+    fun insert(student: Student) = viewModelScope.launch(Dispatchers.IO) {
+        try {
+            repository.insert(student)
+            _statusMessage.postValue("Đã thêm sinh viên: ${student.fullName}")
+        } catch (e: Exception) {
+            _statusMessage.postValue("Lỗi khi thêm: ${e.message}")
         }
     }
 
-    // Cập nhật sinh viên
-    fun updateStudent(student: Student) {
-        viewModelScope.launch {
-            repository.updateStudent(student)
+    fun delete(student: Student) = viewModelScope.launch(Dispatchers.IO) {
+        try {
+            repository.delete(student)
+            _statusMessage.postValue("Đã xóa sinh viên: ${student.fullName}")
+        } catch (e: Exception) {
+            _statusMessage.postValue("Lỗi khi xóa: ${e.message}")
         }
     }
 
-    // Xóa sinh viên
-    fun deleteStudent(student: Student) {
-        viewModelScope.launch {
-            repository.deleteStudent(student)
-        }
-    }
-
-    // Tìm sinh viên theo mã
-    fun getStudentByCode(
-        code: String,
-        onResult: (Student?) -> Unit
-    ) {
-        viewModelScope.launch {
-            val student = repository.getStudentByCode(code)
-            onResult(student)
-        }
-    }
-
-    // Đồng bộ dữ liệu từ API
-    fun syncStudents(
-        onResult: (Result<Int>) -> Unit
-    ) {
-        viewModelScope.launch {
-            val result = repository.syncStudentsFromApi()
-            onResult(result)
+    fun syncFromCloud() = viewModelScope.launch(Dispatchers.IO) {
+        val result = repository.syncFromCloud()
+        if (result.isSuccess) {
+            _statusMessage.postValue("Đã đồng bộ ${result.getOrNull()} sinh viên từ máy chủ!")
+        } else {
+            _statusMessage.postValue("Chưa thể kết nối máy chủ Cloud, sử dụng dữ liệu cục bộ.")
         }
     }
 }

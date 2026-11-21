@@ -1,16 +1,56 @@
 package com.ute.studentmvvm.ui
 
+import android.app.Dialog
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.ute.studentmvvm.R
+import android.view.LayoutInflater
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.activityViewModels
+import com.ute.studentmvvm.data.AppDatabase
+import com.ute.studentmvvm.databinding.DialogAddStudentBinding
+import com.ute.studentmvvm.model.Student
+import com.ute.studentmvvm.repository.StudentRepository
+import com.ute.studentmvvm.viewmodel.StudentViewModel
+import com.ute.studentmvvm.viewmodel.StudentViewModelFactory
 
-class AddStudentDialogFragment : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.dialog_add_student)
+class AddStudentDialogFragment : DialogFragment() {
+
+    // activityViewModels kèm Factory dự phòng đảm bảo tính toàn vẹn
+    private val viewModel: StudentViewModel by activityViewModels {
+        val database = AppDatabase.getDatabase(requireContext().applicationContext)
+        val repository = StudentRepository(database.studentDao())
+        StudentViewModelFactory(repository)
+    }
+
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val binding = DialogAddStudentBinding.inflate(LayoutInflater.from(requireContext()))
+
+        return AlertDialog.Builder(requireContext())
+            .setTitle("Thêm Sinh Viên Mới")
+            .setView(binding.root)
+            .setPositiveButton("Lưu vào Room") { _, _ ->
+                val name = binding.etFullName.text.toString().trim()
+                val code = binding.etStudentCode.text.toString().trim()
+                val email = binding.etEmail.text.toString().trim()
+                val gpa = binding.etGpa.text.toString().trim().toDoubleOrNull() ?: 0.0
+                val major = binding.etMajor.text.toString().trim()
+
+                if (name.isEmpty() || code.isEmpty()) {
+                    Toast.makeText(requireContext(), "Họ tên và MSSV không được để trống!", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                val student = Student(
+                    fullName = name,
+                    studentCode = code,
+                    email = if (email.isNotEmpty()) email else "${code.lowercase()}@ute.udn.vn",
+                    gpa = gpa,
+                    major = if (major.isNotEmpty()) major else "Công Nghệ Thông Tin"
+                )
+                viewModel.insert(student)
+            }
+            .setNegativeButton("Hủy", null)
+            .create()
     }
 }
