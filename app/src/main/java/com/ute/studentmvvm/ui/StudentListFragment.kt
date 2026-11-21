@@ -1,6 +1,8 @@
 package com.ute.studentmvvm.ui
 
+import android.os.Build
 import android.os.Bundle
+import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,6 +12,7 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.ute.studentmvvm.R
 import com.ute.studentmvvm.data.AppDatabase
 import com.ute.studentmvvm.databinding.FragmentStudentListBinding
@@ -20,6 +23,10 @@ import com.ute.studentmvvm.viewmodel.StudentViewModel
 import com.ute.studentmvvm.viewmodel.StudentViewModelFactory
 
 class StudentListFragment : Fragment() {
+
+    companion object {
+        private const val KEY_RECYCLER_STATE = "key_recycler_scroll_state"
+    }
 
     // Backing Property: Quản lý an toàn vòng đời ViewBinding của Fragment
     private var _binding: FragmentStudentListBinding? = null
@@ -34,6 +41,7 @@ class StudentListFragment : Fragment() {
 
     private lateinit var adapter: StudentAdapter
     private var fullStudentList: List<Student> = emptyList()
+    private var savedScrollState: Parcelable? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentStudentListBinding.inflate(inflater, container, false)
@@ -42,16 +50,38 @@ class StudentListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Phục hồi trạng thái cuộn đã lưu từ Bundle nếu có
+        savedInstanceState?.let { bundle ->
+            savedScrollState = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                bundle.getParcelable(KEY_RECYCLER_STATE, Parcelable::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                bundle.getParcelable(KEY_RECYCLER_STATE)
+            }
+        }
+
         setupRecyclerView()
         observeViewModel()
         setupListeners()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Lưu trạng thái cuộn của LayoutManager trước khi Fragment bị hủy do xoay màn hình
+        _binding?.rvStudents?.layoutManager?.onSaveInstanceState()?.let { state ->
+            outState.putParcelable(KEY_RECYCLER_STATE, state)
+        }
     }
 
     private fun setupRecyclerView() {
         adapter = StudentAdapter(
             onStudentClick = { student -> showStudentDetailDialog(student) },
             onDeleteClick = { student -> confirmDelete(student) }
-        )
+        ).apply {
+            // Ngăn chặn việc RecyclerView tự động reset vị trí cuộn về 0 khi adapter còn rỗng
+            stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
+        }
 
         binding.rvStudents.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -76,17 +106,31 @@ class StudentListFragment : Fragment() {
     }
 
     private fun filterStudents(query: String) {
-        val trimmed = query.trim().lowercase()
-        val filtered = if (trimmed.isEmpty()) {
+        val sourceList = if (fullStudentList.isNotEmpty()) {
             fullStudentList
         } else {
-            fullStudentList.filter {
+            viewModel.allStudents.value ?: emptyList()
+        }
+
+        val trimmed = query.trim().lowercase()
+        val filtered = if (trimmed.isEmpty()) {
+            sourceList
+        } else {
+            sourceList.filter {
                 it.fullName.lowercase().contains(trimmed) ||
                 it.studentCode.lowercase().contains(trimmed) ||
                 it.email.lowercase().contains(trimmed)
             }
         }
-        adapter.submitList(filtered)
+
+        // submitList với commit callback để phục hồi chính xác vị trí cuộn khi dữ liệu đã render xong
+        adapter.submitList(filtered) {
+            savedScrollState?.let { state ->
+                binding.rvStudents.layoutManager?.onRestoreInstanceState(state)
+                savedScrollState = null
+            }
+        }
+
         binding.layoutEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
     }
 

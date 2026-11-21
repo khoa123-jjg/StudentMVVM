@@ -13,6 +13,10 @@ class StudentAdapter(
     private val onDeleteClick: (Student) -> Unit
 ) : ListAdapter<Student, StudentAdapter.StudentViewHolder>(StudentDiffCallback()) {
 
+    init {
+        stateRestorationPolicy = StateRestorationPolicy.PREVENT_WHEN_EMPTY
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StudentViewHolder {
         val binding = ItemStudentRoomBinding.inflate(
             LayoutInflater.from(parent.context), parent, false
