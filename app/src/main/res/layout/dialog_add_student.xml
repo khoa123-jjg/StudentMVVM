@@ -1,36 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Thông tin sinh viên"
+        android:textColor="#111827"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
 
     <EditText
         android:id="@+id/etFullName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Họ và tên" />
+        android:hint="Họ và tên"
+        android:inputType="textPersonName"
+        android:padding="12dp" />
 
     <EditText
         android:id="@+id/etStudentCode"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:hint="Mã số sinh viên" />
+        android:layout_marginTop="10dp"
+        android:hint="Mã sinh viên"
+        android:inputType="text"
+        android:padding="12dp" />
 
     <EditText
         android:id="@+id/etEmail"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:hint="Email (để trống tự tạo bằng MSSV)"
-        android:inputType="textEmailAddress" />
+        android:layout_marginTop="10dp"
+        android:hint="Email"
+        android:inputType="textEmailAddress"
+        android:padding="12dp" />
 
     <EditText
         android:id="@+id/etGpa"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:hint="Điểm GPA"
-        android:inputType="numberDecimal" />
+        android:layout_marginTop="10dp"
+        android:hint="Điểm GPA (0 - 4)"
+        android:inputType="numberDecimal"
+        android:padding="12dp" />
+
+    <EditText
+        android:id="@+id/etMajor"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:hint="Chuyên ngành"
+        android:inputType="text"
+        android:padding="12dp" />
+
 </LinearLayout>
